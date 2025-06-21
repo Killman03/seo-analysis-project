@@ -1,0 +1,13 @@
+# Настройки базы данных
+DATABASE_URL=postgresql://user:password@localhost:5432/seo_analysis
+
+# API ключи
+CAPTCHA_API_KEY=your_2captcha_api_key_here
+SCRAPER_API_KEY=your_scraperapi_key_here
+
+# Настройки прокси
+USE_PROXY=False
+PROXY_LIST=proxy1:port,proxy2:port,proxy3:port
+
+# Настройки логирования
+LOG_LEVEL=INFO 
