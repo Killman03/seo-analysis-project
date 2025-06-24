@@ -15,6 +15,7 @@ from parsers.alternative_parser import AlternativeParser
 from database.manager import DatabaseManager
 from utils.proxy_manager import proxy_manager
 
+
 class SEOAnalyzer:
     """Основной класс для SEO-анализа конкурентов"""
     

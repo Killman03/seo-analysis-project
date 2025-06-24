@@ -6,6 +6,8 @@ import urllib.parse
 import time
 import random
 from bs4 import BeautifulSoup
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -14,45 +16,84 @@ from selenium.webdriver.support import expected_conditions as EC
 from loguru import logger
 from config import Config
 from utils.proxy_manager import proxy_manager
+from selenium_stealth import stealth
+
+
 
 class GoogleParser:
     """Парсер результатов поиска Google"""
     
-    def __init__(self, use_selenium=False):
+    def __init__(self, use_selenium=True):
         self.use_selenium = use_selenium
         self.driver = None
         self.session = proxy_manager.get_session()
-        
+
     def setup_selenium(self):
-        """Настройка Selenium WebDriver"""
-        chrome_options = Options()
-        chrome_options.add_argument("--headless")
+        """Настройка stealth WebDriver"""
+        service = Service(ChromeDriverManager().install())
+        chrome_options = webdriver.ChromeOptions()
+
+        # Базовые настройки
+        #chrome_options.add_argument("--headless=new")  # Новый headless режим
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--disable-blink-features=AutomationControlled")
         chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
         chrome_options.add_experimental_option('useAutomationExtension', False)
+        chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
+
+        # Настройки для обхода детекции
         chrome_options.add_argument("--disable-extensions")
         chrome_options.add_argument("--disable-plugins")
-        chrome_options.add_argument("--disable-images")
-        chrome_options.add_argument("--disable-javascript")
-        chrome_options.add_argument(f"--user-agent={proxy_manager.get_random_user_agent()}")
-        
+        chrome_options.add_argument("--disable-popup-blocking")
+        chrome_options.add_argument("--profile-directory=Default")
+        chrome_options.add_argument("--disable-infobars")
+
+        # Региональные настройки для Кыргызстана
+        chrome_options.add_argument("--lang=ru-RU")  # Основной язык интерфейса
+        chrome_options.add_argument("--timezone=Asia/Bishkek")  # Часовой пояс
+        chrome_options.add_argument("--geo-location=lat=42.87,lon=74.59")  # Координаты Бишкека
+
+        # Фиксированный user-agent (лучше не использовать случайные)
+        user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        chrome_options.add_argument(f"user-agent={user_agent}")
+
+        # Настройки прокси
         if Config.USE_PROXY and Config.PROXY_LIST:
             proxy = proxy_manager.get_proxy()
             if proxy:
-                chrome_options.add_argument(f"--proxy-server={proxy}")
-        
+                chrome_options.add_extension(proxy)
+
         try:
-            self.driver = webdriver.Chrome(options=chrome_options)
-            self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-            self.driver.execute_cdp_cmd('Network.setUserAgentOverride', {
-                "userAgent": proxy_manager.get_random_user_agent()
-            })
+            # Инициализация драйвера
+            self.driver = webdriver.Chrome(service=service, options=chrome_options)
+
+
+            # # Применение stealth-режима
+            # stealth(
+            #     self.driver,
+            #     languages=["ru-RU", "ru", "ky-KG"],
+            #     vendor="Google Inc.",
+            #     platform="Win32",
+            #     webgl_vendor="Intel Inc.",
+            #     renderer="Intel HD Graphics 620",  # Типичная графика для ноутбуков
+            #     fix_hairline=True,
+            #     run_on_insecure_origins=True  # Важно для некоторых сайтов
+            # )
+            #
+            # # Дополнительные настройки для маскировки
+            # self.driver.execute_script(
+            #     "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
+            # )
+            # self.driver.execute_cdp_cmd(
+            #     "Network.setUserAgentOverride",
+            #     {"userAgent": user_agent}
+            # )
+
         except Exception as e:
             logger.error(f"Ошибка создания WebDriver: {e}")
             self.driver = None
-        
+
     def build_search_url(self, keyword, page=1):
         """Построить URL для поиска"""
         params = {
@@ -64,11 +105,11 @@ class GoogleParser:
             'safe': 'off',  # Отключаем безопасный поиск
             'pws': '0',  # Отключаем персонализацию
         }
-        
+
         base_url = "https://www.google.com/search"
         query_string = urllib.parse.urlencode(params)
         return f"{base_url}?{query_string}"
-    
+
     def extract_domain(self, url):
         """Извлечь домен из URL"""
         try:
@@ -256,41 +297,58 @@ class GoogleParser:
         except Exception as e:
             logger.error(f"Ошибка при парсинге Google: {e}")
             return []
-    
+
     def parse_with_selenium(self, keyword, page=1):
-        """Парсинг с помощью Selenium"""
+        """Парсинг с помощью Selenium + stealth"""
         try:
             if not self.driver:
                 self.setup_selenium()
-            
+
             if not self.driver:
                 logger.error("Не удалось создать WebDriver")
                 return []
-            
+
             url = self.build_search_url(keyword, page)
             logger.info(f"Парсинг Google (Selenium): {keyword}, страница {page}")
-            
+
+            # 1. Сначала загружаем целевую страницу
             self.driver.get(url)
-            
-            # Ждем загрузки результатов
+            time.sleep(random.uniform(2, 4))
+
+            # 2. Проверяем наличие капчи
+            if "sorry/index" in self.driver.current_url or "consent" in self.driver.current_url:
+                logger.warning("Обнаружена страница согласия или капчи")
+                # Попробуем принять условия
+                try:
+                    accept_button = self.driver.find_element(By.XPATH, '//button/div[contains(text(), "Принять все")]')
+                    accept_button.click()
+                    time.sleep(random.uniform(2, 3))
+                except:
+                    return self.handle_captcha(keyword, page)
+
+            # 3. Ожидание загрузки результатов
             try:
                 WebDriverWait(self.driver, 15).until(
-                    EC.presence_of_element_located((By.TAG_NAME, "div"))
+                    EC.presence_of_element_located((By.CSS_SELECTOR, "div.MjjYud"))
                 )
-                # Дополнительная пауза для полной загрузки
-                time.sleep(3)
+                logger.info("Результаты поиска загружены")
             except:
-                logger.warning("Таймаут ожидания загрузки страницы")
-            
-            # Получаем HTML
+                logger.warning("Не удалось найти результаты поиска")
+                return []
+
+            # 4. Прокрутка для имитации поведения пользователя
+            for _ in range(3):
+                self.driver.execute_script("window.scrollBy(0, 500)")
+                time.sleep(random.uniform(0.5, 1.5))
+
+            logger.info('Прокрутка страницы завершена')
+
+            # 5. Получение и парсинг HTML
             html = self.driver.page_source
             soup = BeautifulSoup(html, 'html.parser')
-            
-            results = self.parse_organic_results(soup)
-            logger.info(f"Найдено {len(results)} результатов для '{keyword}'")
-            
-            return results
-            
+
+            return self.parse_organic_results(soup)
+
         except Exception as e:
             logger.error(f"Ошибка при парсинге Google (Selenium): {e}")
             return []
@@ -309,7 +367,33 @@ class GoogleParser:
             return self.parse_with_selenium(keyword, page)
         else:
             return self.parse_with_requests(keyword, page)
-    
+
+    def check_ip(self):
+        """Проверяет текущий IP-адрес через внешний API"""
+        try:
+            # Сервисы для проверки IP
+            ip_check_urls = [
+                "https://api.ipify.org?format=json",
+                "https://ipinfo.io/json",
+                "http://ip-api.com/json"
+            ]
+
+            for url in ip_check_urls:
+                try:
+                    response = self.session.get(url, timeout=5)
+                    if response.status_code == 200:
+                        ip_data = response.json()
+                        logger.info(f"Текущий IP: {ip_data.get('ip')} | Страна: {ip_data.get('country')}")
+                        return ip_data
+                except Exception as e:
+                    logger.debug(f"Ошибка проверки IP через {url}: {e}")
+
+            logger.warning("Не удалось проверить IP")
+            return None
+        except Exception as e:
+            logger.error(f"Ошибка в check_ip(): {e}")
+            return None
+
     def close(self):
         """Закрыть браузер"""
         if self.driver:

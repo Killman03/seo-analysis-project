@@ -240,6 +240,65 @@ daily_analysis = PythonOperator(
 )
 ```
 
+## 🗺 Карта проекта
+```
+package "Main" {
+  class run.py {
+    +run_analysis()
+    +run_dashboard()
+    +run_test()
+    +run_simple_test()
+    +run_scheduler()
+    +run_manual()
+    +init_database()
+    +main()
+  }
+}
+
+package "SEO Analyzer" {
+  class SEOAnalyzer {
+    -db_manager: DatabaseManager
+    -google_parser: GoogleParser
+    -yandex_parser: YandexParser
+    -page_parser: PageParser
+    -alternative_parser: AlternativeParser
+    +analyze_keyword()
+    +analyze_page_metadata()
+    +analyze_competitors()
+    +analyze_all_metadata()
+    +get_competitor_analysis()
+    +export_to_csv()
+    +generate_report()
+    +cleanup()
+  }
+}
+
+package "Google Parser" {
+  class GoogleParser {
+    -use_selenium: bool
+    -driver: WebDriver
+    -session: Session
+    +setup_selenium()
+    +build_search_url()
+    +extract_domain()
+    +parse_organic_results()
+    +parse_with_requests()
+    +parse_with_selenium()
+    +handle_captcha()
+    +parse_keyword()
+    +check_ip()
+    +close()
+  }
+}
+
+run.py --> SEOAnalyzer : uses
+SEOAnalyzer --> GoogleParser : uses
+SEOAnalyzer --> YandexParser : uses
+SEOAnalyzer --> PageParser : uses
+SEOAnalyzer --> AlternativeParser : uses
+SEOAnalyzer --> DatabaseManager : uses
+```
+
 ## 🐛 Устранение неполадок
 
 ### Частые проблемы:

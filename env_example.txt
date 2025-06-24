@@ -7,7 +7,10 @@ SCRAPER_API_KEY=your_scraperapi_key_here
 
 # Настройки прокси
 USE_PROXY=False
-PROXY_LIST=proxy1:port,proxy2:port,proxy3:port
+PROXY_LIST=proxy1:port,proxy2:port,proxy3:port # прокси в формате str
+PROXY_TYPE=http
+PROXY_LOGIN=your_proxy_login
+PROXY_PASSWORD=your_proxy_password
 
 # Настройки логирования
-LOG_LEVEL=INFO 
+LOG_LEVEL=INFO

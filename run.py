@@ -15,17 +15,19 @@ def run_analysis():
     
     logger.info("Запуск SEO-анализа")
     
-    analyzer = SEOAnalyzer(use_selenium=True, parse_pages=True)
-    
+    #analyzer = SEOAnalyzer(use_selenium=True, parse_pages=True)
+    analyzer = SEOAnalyzer()
+
     try:
         # Анализ ключевых слов
-        analyzer.analyze_keywords_batch()
+        #analyzer.analyze_keywords_batch()
+        #analyzer.analyze_keywords(keyword="кофемашина Бишкек")
         
         # Анализ конкурентов
         analyzer.analyze_competitors()
         
         # Экспорт результатов
-        analyzer.export_results()
+        #analyzer.export_results()
         
         logger.info("Анализ завершен успешно")
         
@@ -68,14 +70,14 @@ def run_dashboard():
 
 def run_test():
     """Запуск тестов"""
-    from test_parser import main as test_main
+    from tests.test_parser import main as test_main
     
     logger.info("Запуск тестов")
     test_main()
 
 def run_simple_test():
     """Запуск простых тестов"""
-    from simple_test import main as simple_test_main
+    from tests.simple_test import main as simple_test_main
     
     logger.info("Запуск простых тестов")
     simple_test_main()

@@ -13,7 +13,7 @@ class Config:
     YANDEX_REGION = "10363"  # Бишкек
     
     # Настройки парсинга
-    MAX_RESULTS = 10
+    MAX_RESULTS = 5 # Максимальное количество результатов на страницу
     DELAY_MIN = 2
     DELAY_MAX = 5
     TIMEOUT = 30
@@ -29,7 +29,15 @@ class Config:
     # Прокси настройки (если используются)
     PROXY_LIST = os.getenv("PROXY_LIST", "").split(",") if os.getenv("PROXY_LIST") else []
     USE_PROXY = os.getenv("USE_PROXY", "False").lower() == "true"
-    
+    PROXY_AUTH_LIST = os.getenv("PROXY_AUTH_LIST", "").split(",") if os.getenv("PROXY_AUTH_LIST") else []
+    # Какой тип прокси использовать
+    USE_PROXY = False  # Для обычных прокси без авторизации
+    USE_PROXY_AUTH = False  # Для прокси с авторизацией
+    PROXY_USER = os.getenv("PROXY_USER", "")
+    PROXY_PASS = os.getenv("PROXY_PASSWORD", "")
+    PROXY_HOST = os.getenv("PROXY_HOST", "")
+    PROXY_PORT = os.getenv("PROXY_PORT", "")
+
     # API ключи
     CAPTCHA_API_KEY = os.getenv("CAPTCHA_API_KEY", "")
     SCRAPER_API_KEY = os.getenv("SCRAPER_API_KEY", "")
